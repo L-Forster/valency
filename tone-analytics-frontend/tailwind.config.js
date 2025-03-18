@@ -1,0 +1,98 @@
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    './pages/**/*.{js,ts,jsx,tsx,mdx}',
+    './components/**/*.{js,ts,jsx,tsx,mdx}',
+    './app/**/*.{js,ts,jsx,tsx,mdx}',
+  ],
+  darkMode: 'class',
+  theme: {
+    extend: {
+      colors: {
+        // Primary and secondary colors
+        primary: {
+          DEFAULT: 'var(--primary)',
+          light: 'var(--primary-light)',
+          dark: 'var(--primary-dark)',
+        },
+        secondary: {
+          DEFAULT: 'var(--secondary)',
+          light: 'var(--secondary-light)',
+          dark: 'var(--secondary-dark)',
+        },
+        // Deep color palette for dark theme
+        midnight: {
+          50: '#E0E5FF',
+          100: '#C2CBFF',
+          200: '#A5B0FF',
+          300: '#8896FF',
+          400: '#6A7CF9',
+          500: '#5263E9',
+          600: '#3A4CD9',
+          700: '#2236C9',
+          800: '#1A2FA8',
+          900: '#121F87',
+          950: '#0A1366',
+        },
+        deepblue: {
+          50: '#E9E9FD',
+          100: '#D3D4FB',
+          200: '#BCBDF9',
+          300: '#9FA1F5',
+          400: '#8285F1',
+          500: '#6568ED',
+          600: '#484CD9',
+          700: '#2E32C5',
+          800: '#222793',
+          900: '#161C62',
+          950: '#0D1133',
+        },
+        purple: {
+          50: '#F5E9FF',
+          100: '#EBD4FF',
+          200: '#D7ADFF',
+          300: '#C285FF',
+          400: '#AE5DFF',
+          500: '#9935FF',
+          600: '#8520E0',
+          700: '#6C1AB3',
+          800: '#52158A',
+          900: '#3A115D',
+          950: '#230A38',
+        },
+        accent: {
+          teal: '#4FD1C5',
+          rose: '#F687B3',
+          amber: '#FCD34D',
+          emerald: '#34D399',
+        },
+        dark: {
+          100: '#1E2130',
+          200: '#191B28',
+          300: '#14151F',
+          400: '#0F1016',
+          500: '#0A0B0D',
+          900: '#050506',
+        },
+      },
+      boxShadow: {
+        sm: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+        DEFAULT: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+        md: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+        xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+        '2xl': '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+        inner: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)',
+        none: 'none',
+        'glow-sm': '0 0 5px rgba(122, 107, 251, 0.3)',
+        'glow-md': '0 0 10px rgba(122, 107, 251, 0.4)',
+        'glow-lg': '0 0 15px rgba(122, 107, 251, 0.5)',
+      },
+      fontFamily: {
+        sans: ['Inter', 'sans-serif'],
+        mono: ['Roboto Mono', 'monospace'],
+      },
+    },
+  },
+  plugins: [],
+}; 

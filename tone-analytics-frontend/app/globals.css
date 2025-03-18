@@ -1,0 +1,101 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #191B28;
+  --foreground: #F1F5F9;
+  --primary: #6568ED;
+  --primary-light: #8285F1;
+  --primary-dark: #484CD9;
+  --secondary: #9935FF;
+  --secondary-light: #AE5DFF;
+  --secondary-dark: #8520E0;
+  --accent-teal: #4FD1C5;
+  --accent-rose: #F687B3;
+  --accent-amber: #FCD34D;
+  --accent-emerald: #34D399;
+  --success: #34D399;
+  --error: #EF4444;
+  --warning: #F59E0B;
+  --info: #3B82F6;
+}
+
+@layer base {
+  html {
+    @apply scroll-smooth;
+  }
+  
+  body {
+    @apply bg-dark-200 text-slate-100 font-sans antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-sans tracking-tight;
+  }
+
+  /* Focus styles */
+  :focus-visible {
+    @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-dark-300;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-md font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2;
+  }
+  
+  .btn-primary {
+    @apply bg-primary hover:bg-primary-dark text-white shadow-glow-sm hover:shadow-glow-md;
+  }
+  
+  .btn-secondary {
+    @apply bg-dark-100 hover:bg-dark-300 text-white border border-primary;
+  }
+
+  .input {
+    @apply w-full px-4 py-2 bg-dark-300 border border-dark-100 rounded-md shadow-sm
+           focus:border-primary focus:ring-2 focus:ring-primary focus:ring-opacity-50;
+  }
+
+  .card {
+    @apply bg-dark-100 rounded-lg shadow-md p-6 transition-all duration-300 border border-dark-100 hover:border-primary-dark;
+  }
+
+  .section {
+    @apply py-16 px-6 md:py-24;
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary;
+  }
+  
+  .animate-fade-in {
+    animation: fadeIn 0.6s ease-in forwards;
+  }
+  
+  .animate-slide-up {
+    animation: slideUp 0.5s ease-out forwards;
+  }
+  
+  .animate-pulse-glow {
+    animation: pulseGlow 2s infinite;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 5px rgba(122, 107, 251, 0.5); }
+  50% { box-shadow: 0 0 15px rgba(122, 107, 251, 0.8); }
+}
