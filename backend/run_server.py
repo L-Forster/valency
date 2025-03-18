@@ -1,7 +1,7 @@
 """
-Run the ToneAnalytics API server.
+Run the Valency AI API server.
 
-This script starts the FastAPI server for the ToneAnalytics API,
+This script starts the FastAPI server for the Valency AI API,
 which provides endpoints for analyzing the emotional tone of text.
 """
 
@@ -10,9 +10,9 @@ import sys
 import uvicorn
 
 def main():
-    """Run the ToneAnalytics API server"""
+    """Run the Valency AI API server"""
     print("=" * 80)
-    print("TONEANALYTICS API SERVER")
+    print("VALENCY AI API SERVER")
     print("=" * 80)
     
     # Check if models directory exists
@@ -29,7 +29,7 @@ def main():
             print("Exiting. Please ensure the models are available.")
             sys.exit(0)
     
-    print("\nStarting ToneAnalytics API server...")
+    print("\nStarting Valency AI API server...")
     print("\nAPI will be available at: http://localhost:8000")
     print("API documentation: http://localhost:8000/docs")
     print("\nPress CTRL+C to stop the server")

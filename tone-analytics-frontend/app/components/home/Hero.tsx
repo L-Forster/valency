@@ -82,7 +82,7 @@ export default function Hero() {
             variants={itemVariants}
             className="mt-6 text-xl text-slate-300 max-w-3xl mx-auto"
           >
-            ToneAnalytics uses LSTM neural networks to analyze emotional valence and arousal in text, helping businesses create more empathetic chatbot experiences.
+            Valency AI uses LSTM neural networks to analyze emotional valence and arousal in text, helping businesses create more empathetic chatbot experiences.
           </motion.p>
           
           <motion.div 

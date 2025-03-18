@@ -26,7 +26,7 @@ from paragraph_facade import run as paragraph_run
 
 # Initialize FastAPI app
 app = FastAPI(
-    title="ToneAnalytics API",
+    title="Valency AI API",
     description="API for analyzing emotional tone in text",
     version="1.0.0"
 )
@@ -89,7 +89,7 @@ def normalize_value(value: float) -> float:
 # Root endpoint
 @app.get("/")
 async def root():
-    return {"message": "Welcome to the ToneAnalytics API"}
+    return {"message": "Welcome to the Valency AI API"}
 
 # Analysis endpoint - note that the frontend expects this at /analyze not /api/analyze
 @app.post("/analyze", response_model=AnalysisResponse)
