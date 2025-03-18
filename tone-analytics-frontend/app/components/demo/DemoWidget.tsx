@@ -90,8 +90,8 @@ export default function DemoWidget() {
         >
           <p className="mb-2 font-medium">Not sure what to try? Use this sample conversation:</p>
           <div className="inline-block text-left bg-dark-300 p-4 rounded-md">
-            <p>Customer: I've been waiting for over 30 minutes to connect with a representative!</p>
-            <p>Chatbot: I'm sorry for the wait time. I'll help you right away.</p>
+            <p>Customer: I&apos;ve been waiting for over 30 minutes to connect with a representative!</p>
+            <p>Chatbot: I&apos;m sorry for the wait time. I&apos;ll help you right away.</p>
             <p>Customer: This is ridiculous. I just want to update my shipping address.</p>
             <p>Chatbot: I understand your frustration. I can update your shipping address now.</p>
             <p>Customer: Thanks, I appreciate that. My new address is 123 Main St.</p>

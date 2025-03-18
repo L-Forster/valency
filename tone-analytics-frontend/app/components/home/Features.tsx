@@ -76,7 +76,7 @@ export default function Features() {
       >
         <h2 className="text-3xl font-bold text-gradient mb-4">Key Features</h2>
         <p className="max-w-2xl mx-auto text-lg text-slate-300">
-          Powerful tools to enhance your chatbot's emotional intelligence.
+          Powerful tools to enhance your chatbot&apos;s emotional intelligence.
         </p>
       </motion.div>
 

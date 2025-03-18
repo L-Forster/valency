@@ -103,7 +103,7 @@ export default function Testimonials() {
                 </div>
               </div>
               <blockquote>
-                <p className="text-lg font-medium text-gray-900 text-center mb-8">"{testimonial.content}"</p>
+                <p className="text-lg font-medium text-gray-900 text-center mb-8">&quot;{testimonial.content}&quot;</p>
                 <div className="flex items-center justify-center">
                   <div className="text-center">
                     <div className="text-base font-semibold text-gray-900">{testimonial.author.name}</div>
