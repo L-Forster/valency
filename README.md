@@ -8,6 +8,8 @@ This project analyzes the emotional tone (valence and arousal) of text using tra
 
 ![image](https://github.com/user-attachments/assets/4abfcd63-e176-4bf9-b3e8-0e0aba42257e)
 
+![image](https://github.com/user-attachments/assets/c84ff954-8332-42bb-861b-71280e89f5ea)
+
 
 
 ## Setup
