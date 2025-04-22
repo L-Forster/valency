@@ -1,6 +1,6 @@
-# Emotion Analysis with LSTM
+# Emotion Analysis with transformers
 
-This project analyzes the emotional tone (valence and arousal) of text using LSTM neural networks. It can process both individual sentences and entire paragraphs, showing how different sentences contribute to the overall emotional tone.
+This project analyzes the emotional tone (valence and arousal) of text using transformer neural networks. It can process both individual sentences and entire paragraphs, showing how different sentences contribute to the overall emotional tone.
 
 ## Setup
 
@@ -22,7 +22,7 @@ python paragraph_demo.py
 ## Features
 
 - **Sentence-level analysis**: Analyzes individual sentences using a pre-trained neural network
-- **Paragraph-level analysis**: Uses LSTM to model how emotions evolve through paragraphs
+- **Paragraph-level analysis**: Uses transformers to model how emotions evolve through paragraphs
 - **Attention mechanism**: Identifies which sentences have the most impact on the overall tone
 - **Valence-Arousal model**: Measures emotions on two dimensions (positive/negative and calm/excited)
 - **Visual output**: Generates visualizations showing sentence contributions to paragraph emotion
@@ -63,12 +63,12 @@ results = inference("Your paragraph here.", visualize=True)
 ## Model Architecture
 
 The system uses two models:
-1. A sentence embedding model (SentenceTransformer) to convert text to vectors
-2. A bidirectional LSTM with attention to process sequences of sentences
+1. A sentence embedding model (Sentencetransformers) to convert text to vectors
+2. A bidirectional transformers with attention to process sequences of sentences
 
-The LSTM model architecture includes:
+The transformers model architecture includes:
 - Input: Sequence of sentence embeddings (384-dimensional vectors)
-- Bidirectional LSTM layers (2 layers with 64 hidden units)
+- Bidirectional transformers layers (2 layers with 64 hidden units)
 - Attention mechanism to weight sentence importance
 - Output: Valence and arousal values for the paragraph
 
@@ -78,7 +78,7 @@ The models are trained on the EmoBank dataset, which provides valence and arousa
 
 ## Files
 
-- `paragraph_model.py`: Contains the LSTM model architecture and preprocessing
+- `paragraph_model.py`: Contains the transformers model architecture and preprocessing
 - `paragraph_inference.py`: Handles inference and visualization
 - `paragraph_facade.py`: Provides a simple interface for users
 - `train_paragraph_model.py`: Script for training the paragraph model
