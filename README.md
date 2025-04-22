@@ -2,6 +2,14 @@
 
 This project analyzes the emotional tone (valence and arousal) of text using transformer neural networks. It can process both individual sentences and entire paragraphs, showing how different sentences contribute to the overall emotional tone.
 
+
+## What it will look like once deployed:
+![image](https://github.com/user-attachments/assets/393a1d34-a97d-45ea-a224-c0dc633a081d)
+
+![image](https://github.com/user-attachments/assets/4abfcd63-e176-4bf9-b3e8-0e0aba42257e)
+
+
+
 ## Setup
 
 1. Install dependencies:
