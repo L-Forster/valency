@@ -14,7 +14,7 @@ export default function Footer() {
               <span className="text-lg font-bold text-gradient">Valency AI</span>
             </div>
             <p className="text-sm text-slate-400 mb-4">
-              Advanced emotional analysis for chatbot conversations using LSTM neural networks.
+              Advanced emotional analysis for chatbot conversations using transformer neural networks.
             </p>
             <div className="flex space-x-4">
               <SocialLink href="https://twitter.com" aria-label="Twitter">

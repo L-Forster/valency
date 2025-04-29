@@ -10,7 +10,7 @@ export default function DemoPage() {
             Try Valency AI Demo
           </h1>
           <p className="mt-3 max-w-2xl mx-auto text-xl text-gray-500 sm:mt-4">
-            Analyze the emotional tone of your chatbot conversations using our powerful LSTM neural network.
+            Analyze the emotional tone of your chatbot conversations using our powerful transformer neural network.
           </p>
         </div>
         

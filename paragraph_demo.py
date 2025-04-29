@@ -18,7 +18,7 @@ def demo():
     print("PARAGRAPH TONE ANALYSIS DEMO")
     print("=" * 80)
     print("\nThis demo shows how individual sentences contribute to the overall tone of a paragraph.")
-    print("The model uses an LSTM with attention mechanism to analyze sentence contributions.")
+    print("The model uses a transformer neural network with attention mechanism to analyze sentence contributions.")
     
     # Example 1: Positive paragraph
     print("\n\nEXAMPLE 1: POSITIVE PARAGRAPH")

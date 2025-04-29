@@ -35,7 +35,7 @@ export default function DemoWidget() {
           Experience the Analysis
         </h2>
         <p className="max-w-2xl mx-auto text-lg text-slate-300">
-          Paste a chatbot conversation and see how our LSTM valence-arousal model detects emotional patterns.
+          Paste a chatbot conversation and see how our transformer neural network detects emotional patterns.
         </p>
       </motion.div>
 

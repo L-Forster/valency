@@ -1,5 +1,5 @@
 """
-Test the paragraph LSTM model with different types of paragraphs
+Test the paragraph transformer model with different types of paragraphs
 """
 
 from run_paragraph_inference import analyze_paragraph

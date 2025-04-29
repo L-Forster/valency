@@ -65,7 +65,7 @@ export default function Benefits() {
             The Business Impact of Emotional Intelligence
           </p>
           <p className="mt-4 max-w-2xl text-xl text-gray-500 lg:mx-auto">
-            Our LSTM valence-arousal regression model enables businesses to enhance chatbot interactions in ways that directly improve key performance metrics.
+            Our transformer-based valence-arousal regression model enables businesses to enhance chatbot interactions in ways that directly improve key performance metrics.
           </p>
         </div>
 

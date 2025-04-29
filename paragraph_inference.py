@@ -6,12 +6,12 @@ import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from matplotlib.colors import LinearSegmentedColormap
 import seaborn as sns
-from paragraph_model import ParagraphProcessor, ParagraphLSTMModel
+from paragraph_model import ParagraphProcessor
 from old.inference_facade import run as run_sentence_inference
 
 class ParagraphAnalyzer:
     """
-    Class for analyzing and visualizing paragraph tone using the LSTM model
+    Class for analyzing and visualizing paragraph tone using the transformer model
     """
     def __init__(self):
         # Initialize the paragraph processor
@@ -42,9 +42,9 @@ class ParagraphAnalyzer:
         embeddings_tensor = torch.tensor(embeddings, dtype=torch.float32).unsqueeze(0)  # Add batch dimension
         
         # Get predictions with attention weights
-        self.processor.lstm_model.eval()
+        self.processor.transformer_model.eval()
         with torch.no_grad():
-            pred_norm, attention = self.processor.lstm_model(embeddings_tensor, return_attention=True)
+            pred_norm, attention = self.processor.transformer_model(embeddings_tensor, return_attention=True)
             
             # Convert to numpy and reshape attention
             attention = attention.squeeze(2).squeeze(0).numpy()

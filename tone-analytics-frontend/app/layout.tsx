@@ -12,7 +12,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "Valency AI - Understand Emotional Impact in Conversations",
-  description: "Analyze chatbot conversations using LSTM valence-arousal regression neural networks for improved emotional intelligence.",
+  description: "Analyze chatbot conversations using transformer neural networks for improved emotional intelligence.",
 };
 
 export default function RootLayout({
