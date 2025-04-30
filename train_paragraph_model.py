@@ -285,6 +285,7 @@ def train_paragraph_model(dataset_dict: Dict, epochs: int = 50, batch_size: int 
     
     # Max sequence length determined after padding
     max_seq_len_actual = X_padded.shape[1]
+    FIXED_MAX_SEQ_LEN = 100 
     print(f"Sequences padded to max length: {max_seq_len_actual}")
 
     if X_padded.size == 0:
@@ -374,14 +375,27 @@ def train_paragraph_model(dataset_dict: Dict, epochs: int = 50, batch_size: int 
         'dim_feedforward': 512,     # Hidden dim in FFN layers
         'dropout': 0.1,
         'output_size': 2,           # Valence and arousal
-        'max_seq_len': max_seq_len_actual # Use actual max length from padded data
+        'max_seq_len': FIXED_MAX_SEQ_LEN # Use actual max length from padded data
     }
     
     # Update defaults with any user-provided params
+    
+    # Update defaults with any user-provided params
     if transformer_params:
-        # Ensure essential keys like input_size and output_size are not accidentally overridden if needed
         final_tf_params = default_tf_params.copy()
-        final_tf_params.update(transformer_params)
+        # Allow overriding if needed, but ensure 'max_seq_len' is consistent
+        # If transformer_params contains 'max_seq_len', ensure it's also FIXED_MAX_SEQ_LEN
+        # or handle the inconsistency explicitly. For simplicity, let's assume
+        # the fixed value is desired unless explicitly overridden with the same value.
+        if 'max_seq_len' in transformer_params and transformer_params['max_seq_len'] != FIXED_MAX_SEQ_LEN:
+            print(f"Warning: transformer_params contains max_seq_len={transformer_params['max_seq_len']}, "
+                  f"but training is set to use fixed max_seq_len={FIXED_MAX_SEQ_LEN}. Using the fixed value.")
+        
+        # Update other params provided by user
+        params_to_update = {k: v for k, v in transformer_params.items() if k != 'max_seq_len'}
+        final_tf_params.update(params_to_update)
+        final_tf_params['max_seq_len'] = FIXED_MAX_SEQ_LEN # Ensure it's the fixed value
+
         # --- Add validation for parameters ---
         if final_tf_params['d_model'] % final_tf_params['nhead'] != 0:
              raise ValueError(f"d_model ({final_tf_params['d_model']}) must be divisible by nhead ({final_tf_params['nhead']})")
@@ -392,7 +406,10 @@ def train_paragraph_model(dataset_dict: Dict, epochs: int = 50, batch_size: int 
 
 
     model = ParagraphTransformerModel(**final_tf_params).to(device) # Use updated params
-    
+
+
+
+
     # --- Define loss function and optimizer ---
     criterion = custom_loss # Using the defined MSE loss
     optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
@@ -439,11 +456,11 @@ def train_paragraph_model(dataset_dict: Dict, epochs: int = 50, batch_size: int 
         for X_batch, y_batch in train_loader:
             X_batch = X_batch.to(device)
             y_batch = y_batch.to(device)
-            
-            # Forward pass
-            outputs = model(X_batch)
-            loss = criterion(outputs, y_batch)
-            
+
+            # Forward pass - unpack the tuple
+            predictions, _ = model(X_batch) # Unpack predictions and ignore weights here
+            loss = criterion(predictions, y_batch) # Use only predictions for loss
+
             # Backward pass and optimize
             optimizer.zero_grad()
             loss.backward()
@@ -464,9 +481,10 @@ def train_paragraph_model(dataset_dict: Dict, epochs: int = 50, batch_size: int 
             for X_val_batch, y_val_batch in val_loader:
                 X_val_batch = X_val_batch.to(device)
                 y_val_batch = y_val_batch.to(device)
-                
-                val_outputs = model(X_val_batch)
-                val_loss = criterion(val_outputs, y_val_batch)
+
+                # Unpack the tuple
+                val_outputs, _ = model(X_val_batch) # Unpack predictions and ignore weights here
+                val_loss = criterion(val_outputs, y_val_batch) # Use only predictions for loss
                 epoch_val_losses.append(val_loss.item())
                 
         avg_val_loss = np.mean(epoch_val_losses)
@@ -515,9 +533,10 @@ def train_paragraph_model(dataset_dict: Dict, epochs: int = 50, batch_size: int 
         for X_test_batch, y_test_batch in test_loader:
             X_test_batch = X_test_batch.to(device)
             y_test_batch = y_test_batch.to(device) # Scaled targets
-            
-            test_outputs_batch = model(X_test_batch) # Scaled predictions
-            test_loss = criterion(test_outputs_batch, y_test_batch)
+
+            # Unpack the tuple
+            test_outputs_batch, _ = model(X_test_batch) # Unpack predictions and ignore weights here
+            test_loss = criterion(test_outputs_batch, y_test_batch) # Use only predictions for loss
             test_losses.append(test_loss.item())
             
             all_test_outputs.append(test_outputs_batch.cpu().numpy())
@@ -597,7 +616,7 @@ def train_paragraph_model(dataset_dict: Dict, epochs: int = 50, batch_size: int 
     plt.gca().set_aspect('equal', adjustable='box') # Make axes equal
 
     plt.tight_layout()
-    plt.show()
+    # plt.show()
     
     # --- Return Trained Model and Info ---
     training_info = {

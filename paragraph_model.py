@@ -1,4 +1,3 @@
-from pathlib import Path
 import torch
 import torch.nn as nn
 import numpy as np
@@ -9,12 +8,7 @@ import os
 import nltk
 import math
 from typing import List, Tuple, Dict
-
-# Download NLTK data for sentence tokenization
-try:
-    nltk.data.find('tokenizers/punkt')
-except LookupError:
-    nltk.download('punkt')
+from pathlib import Path 
 
 class PositionalEncoding(nn.Module):
     """
@@ -28,14 +22,14 @@ class PositionalEncoding(nn.Module):
 
         position = torch.arange(max_len).unsqueeze(1)
         div_term = torch.exp(torch.arange(0, d_model, 2) * (-math.log(10000.0) / d_model))
-        
+
         # Create positional encoding matrix pe of shape (max_len, 1, d_model)
-        pe = torch.zeros(max_len, d_model) 
+        pe = torch.zeros(max_len, d_model)
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
-        
+
         # Add batch dimension: shape (1, max_len, d_model) for batch_first=True
-        pe = pe.unsqueeze(0) 
+        pe = pe.unsqueeze(0)
 
         # Register pe as a buffer, so it's part of the model's state but not trained
         self.register_buffer('pe', pe)
@@ -51,89 +45,157 @@ class PositionalEncoding(nn.Module):
         x = x + self.pe[:, :x.size(1)]
         return self.dropout(x)
 
-
 class ParagraphTransformerModel(nn.Module):
     """
     Transformer model for processing paragraphs as sequences of sentence embeddings
     to predict valence and arousal values. Uses Transformer Encoder layers.
+    MODIFIED to return attention-based contribution weights.
     """
-    def __init__(self, input_size=384, d_model=384, nhead=8, num_encoder_layers=3, 
+    def __init__(self, input_size=384, d_model=384, nhead=8, num_encoder_layers=3,
                  dim_feedforward=512, dropout=0.1, output_size=2, max_seq_len=100):
-        """
-        Args:
-            input_size (int): Dimension of the input sentence embeddings.
-            d_model (int): The number of expected features in the encoder/decoder inputs (must be divisible by nhead).
-            nhead (int): The number of heads in the multiheadattention models.
-            num_encoder_layers (int): The number of sub-encoder-layers in the encoder.
-            dim_feedforward (int): The dimension of the feedforward network model in nn.TransformerEncoderLayer.
-            dropout (float): The dropout value.
-            output_size (int): The number of output values (e.g., 2 for valence and arousal).
-            max_seq_len (int): Maximum sequence length for positional encoding.
-        """
         super(ParagraphTransformerModel, self).__init__()
-        
+
+        self.num_encoder_layers = num_encoder_layers # Store this
+
         if d_model != input_size:
-             # Optional: Linear layer to project input embeddings to d_model if they differ
             self.input_proj = nn.Linear(input_size, d_model)
         else:
-            self.input_proj = nn.Identity() # No projection needed
+            self.input_proj = nn.Identity()
 
-        # Positional Encoding
         self.pos_encoder = PositionalEncoding(d_model, dropout, max_seq_len)
-        
-        # Transformer Encoder Layer
+
         encoder_layers = nn.TransformerEncoderLayer(
-            d_model=d_model, 
-            nhead=nhead, 
-            dim_feedforward=dim_feedforward, 
-            dropout=dropout, 
-            batch_first=True  # Important: Input shape (batch, seq, feature)
+            d_model=d_model,
+            nhead=nhead,
+            dim_feedforward=dim_feedforward,
+            dropout=dropout,
+            batch_first=True
         )
-        
-        # Transformer Encoder
+
         self.transformer_encoder = nn.TransformerEncoder(
-            encoder_layer=encoder_layers, 
+            encoder_layer=encoder_layers,
             num_layers=num_encoder_layers
         )
-        
-        # Output layer
-        # We'll pool the transformer output before the final layer. Mean pooling is common.
-        self.fc = nn.Linear(d_model, output_size)
-        
-        self.d_model = d_model # Store d_model for potential use
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        self.fc = nn.Linear(d_model, output_size)
+        self.d_model = d_model
+
+    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """
-        Forward pass through the Transformer model
-        
+        Forward pass through the Transformer model.
+        MODIFIED to return predictions and contribution weights.
+
         Args:
             x (torch.Tensor): Input tensor of shape (batch_size, seq_length, input_size)
-            
+
         Returns:
-            torch.Tensor: Output predictions for valence and arousal (batch_size, output_size)
+            Tuple[torch.Tensor, torch.Tensor]:
+            - Final predictions for valence and arousal (batch_size, output_size)
+            - Contribution weights derived from last layer attention (batch_size, seq_length)
         """
         # x shape: (batch_size, seq_length, input_size)
-        
-        # Project input if dimensions don't match d_model
         x = self.input_proj(x) # shape: (batch_size, seq_length, d_model)
-        
-        # Add positional encoding
         x = self.pos_encoder(x) # shape: (batch_size, seq_length, d_model)
-        
-        # Pass through Transformer Encoder
-        # No mask needed here unless we want to ignore padding, which isn't handled in this basic example
-        transformer_out = self.transformer_encoder(x) # shape: (batch_size, seq_length, d_model)
-        
+
+        # --- Manual iteration through encoder layers to capture attention ---
+        last_layer_attn_weights = None
+        # src_mask and src_key_padding_mask are assumed None for this paragraph model
+        src_mask = None
+        src_key_padding_mask = None
+
+        for i in range(self.num_encoder_layers):
+            layer = self.transformer_encoder.layers[i]
+
+            if i < self.num_encoder_layers - 1:
+                # Standard forward for all but the last layer
+                x = layer(x, src_mask=src_mask, src_key_padding_mask=src_key_padding_mask)
+            else:
+                # --- Manual forward for the last layer to get attention ---
+                # 1. Self-Attention block
+                # Note: Assuming no masks for simplicity in paragraph processing context
+                #       If masks were used, they'd need to be passed here.
+                attn_output, last_layer_attn_weights = layer.self_attn(
+                    x, x, x,                    # query, key, value
+                    attn_mask=src_mask,         # Use the same mask if provided
+                    key_padding_mask=src_key_padding_mask, # Use the same mask if provided
+                    need_weights=True,          # Request attention weights
+                    average_attn_weights=False  # Get per-head weights first
+                )
+                x = x + layer.dropout1(attn_output)
+                x = layer.norm1(x)
+
+                # 2. Feedforward block
+                ff_output = layer.linear2(layer.dropout(layer.activation(layer.linear1(x))))
+                x = x + layer.dropout2(ff_output)
+                x = layer.norm2(x)
+                # --- End Manual forward for last layer ---
+
+        # --- Calculate contribution weights from attention ---
+        # last_layer_attn_weights shape: (batch_size, num_heads, seq_len, seq_len)
+        if last_layer_attn_weights is not None:
+            # Average across heads
+            avg_attn_weights = last_layer_attn_weights.mean(dim=1) # Shape: (batch_size, seq_len, seq_len)
+            
+            # Debug raw attention values
+            print(f"[DEBUG] Raw attention matrix:\n{avg_attn_weights[0]}")  # Print first batch element
+            
+            # Calculate contribution weights - try a different approach
+            # Instead of averaging and applying softmax (which can make uniform),
+            # use the diagonal of the attention matrix (self-attention scores)
+            # as a more distinctive measure of contribution
+            diag_attn = torch.diagonal(avg_attn_weights, dim1=1, dim2=2)  # Extract diagonal elements (self-attention)
+            print(f"[DEBUG] Self-attention diagonal: {diag_attn[0]}")  # Print first batch
+            
+            # Use the self-attention scores directly without softmax normalization
+            contribution_weights = diag_attn
+            
+            # Only normalize if the values are very different in scale
+            # contribution_weights = torch.softmax(contribution_weights, dim=1)
+
+            # --- Debugging shape ---
+            # print(f"[DEBUG] Shape of avg_attn_weights: {avg_attn_weights.shape}") # Add for debugging
+
+            # Check the number of dimensions before taking the mean
+            if avg_attn_weights.ndim == 3:
+                # Expected case: Average attention *received* by each token (dim 2)
+                contribution_weights = avg_attn_weights.mean(dim=2) # Shape: (batch_size, seq_len)
+            elif avg_attn_weights.ndim == 2:
+                # Unexpected case: If it's already 2D, maybe just use it directly?
+                # This depends on what it represents if it's 2D here.
+                # Let's assume it might be (batch_size, seq_len) if S=1 caused squeezing?
+                print("[DEBUG] Warning: avg_attn_weights was 2D, using directly as contribution_weights.")
+                contribution_weights = avg_attn_weights
+            else:
+                # Fallback for other unexpected shapes
+                print(f"[DEBUG] Warning: avg_attn_weights had unexpected ndim={avg_attn_weights.ndim}. Using uniform weights.")
+                batch_size, seq_len = avg_attn_weights.shape[0], avg_attn_weights.shape[1] # Assuming at least 2D
+                contribution_weights = torch.ones(batch_size, seq_len, device=x.device) / seq_len
+
+            # Ensure weights sum to 1 (apply softmax regardless of how weights were derived)
+            # Make sure contribution_weights is 2D before softmax dim=1
+            if contribution_weights.ndim == 1:
+                contribution_weights = contribution_weights.unsqueeze(0) # Add batch dim if missing
+
+            if contribution_weights.ndim == 2:
+                contribution_weights = torch.softmax(contribution_weights, dim=1) # Shape: (batch_size, seq_len)
+            else:
+                print(f"[DEBUG] Warning: Cannot apply softmax to contribution_weights with ndim={contribution_weights.ndim}")
+                # Handle error or use unnormalized weights
+            # --- MODIFICATION END ---
+
+        else:
+            # Fallback if attention wasn't calculated
+            batch_size, seq_len, _ = x.shape
+            contribution_weights = torch.ones(batch_size, seq_len, device=x.device) / seq_len
         # Pooling: Average the outputs across the sequence length dimension
-        # Alternatives: Use output of a special [CLS] token, max pooling, etc.
-        pooled_output = transformer_out.mean(dim=1) # shape: (batch_size, d_model)
-        
+        pooled_output = x.mean(dim=1) # shape: (batch_size, d_model)
+
         # Final prediction layer
-        output = self.fc(pooled_output) # shape: (batch_size, output_size)
-        
-        return output
+        predictions = self.fc(pooled_output) # shape: (batch_size, output_size)
 
+        return predictions, contribution_weights
 
+# (Keep ParagraphProcessor class mostly as is, but update path logic)
 class ParagraphProcessor:
     """
     Handles processing of paragraphs for the Transformer model, including:
@@ -143,147 +205,174 @@ class ParagraphProcessor:
     """
     def __init__(self, model_dir='models/paragraph'):
         self.embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
-        
-        # --- Helper function to find project root (same as before) ---
+
+        # --- Updated Helper function to find project root ---
         def get_project_root():
-            # Check if running in a standard script environment
-            if '__file__' in globals():
-                current_path = Path(__file__).resolve()
-                # Traverse up to find a marker like .git or requirements.txt
-                for parent in current_path.parents:
-                    if (parent / ".git").exists() or (parent / "requirements.txt").exists():
-                        return parent
-                # Fallback if no marker found, assume script's parent dir
-                return current_path.parent  
-            else:
-                # Fallback for interactive environments (like Jupyter, IPython)
-                # Assumes the current working directory is relevant to the project
-                return Path.cwd() 
+            current_path = Path(__file__).resolve()
+            for parent in current_path.parents:
+                # Look for a common project marker like .git or pyproject.toml or requirements.txt
+                if (parent / ".git").exists() or \
+                   (parent / "pyproject.toml").exists() or \
+                   (parent / "requirements.txt").exists() or \
+                   (parent / "README.md").exists(): # Added README as another potential marker
+                    return parent
+            # Fallback: Use the directory containing this script file
+            return current_path.parent
 
         project_root = get_project_root()
-        model_path = project_root / "models" / "paragraph" 
-        print("Model Path: ", model_path)        
+        # Construct path relative to the project root
+        # Assumes models are stored in <project_root>/models/paragraph
+        model_path = project_root / model_dir # Use the argument for flexibility
+        print(f"Attempting to load models from resolved path: {model_path}")
         self.model_dir = model_path
-        
-        # Ensure model directory exists 
+
+        # Ensure model directory exists
         os.makedirs(self.model_dir, exist_ok=True)
-        
+
         # Load scalers and model if available
         self.feature_scaler = self._load_feature_scaler()
         self.y_scaler = self._load_y_scaler()
-        # --- Updated to load Transformer model ---
-        self.transformer_model = self._load_transformer_model() 
-    
+        self.transformer_model = self._load_transformer_model()
+
     def _load_feature_scaler(self):
         """Load feature scaler from disk if it exists"""
+        scaler_path = self.model_dir / 'paragraph_feature_scaler.pkl'
         try:
-            scaler_path = os.path.join(self.model_dir, 'paragraph_feature_scaler.pkl')
-            if os.path.exists(scaler_path):
+            if scaler_path.exists():
                 with open(scaler_path, 'rb') as f:
+                    scaler = pickle.load(f)
                     print("Feature scaler loaded successfully")
-                    return pickle.load(f)
+                    # Check if it's fitted (optional but good practice)
+                    if not hasattr(scaler, 'mean_') or scaler.mean_ is None:
+                         print("Warning: Loaded feature scaler doesn't appear to be fitted.")
+                    return scaler
             else:
-                 print("No feature scaler found, creating new one.")
-                 return StandardScaler() # Return new scaler if file doesn't exist
+                 print(f"No feature scaler found at {scaler_path}, creating new one.")
+                 return StandardScaler()
         except Exception as e:
-            print(f"Error loading feature scaler: {e}. Creating new one.")
+            print(f"Error loading feature scaler from {scaler_path}: {e}. Creating new one.")
             return StandardScaler()
-    
+
     def _load_y_scaler(self):
         """Load target scaler from disk if it exists"""
+        scaler_path = self.model_dir / 'paragraph_y_scaler.pkl'
         try:
-            scaler_path = os.path.join(self.model_dir, 'paragraph_y_scaler.pkl')
-            if os.path.exists(scaler_path):
+            if scaler_path.exists():
                 with open(scaler_path, 'rb') as f:
+                    scaler = pickle.load(f)
                     print("Target scaler loaded successfully")
-                    return pickle.load(f)
+                    if not hasattr(scaler, 'scale_') or scaler.scale_ is None:
+                         print("Warning: Loaded target scaler doesn't appear to be fitted.")
+                    return scaler
             else:
-                print("No target scaler found, creating new one.")
-                return StandardScaler() # Return new scaler if file doesn't exist
+                print(f"No target scaler found at {scaler_path}, creating new one.")
+                return StandardScaler()
         except Exception as e:
-            print(f"Error loading target scaler: {e}. Creating new one.")
+            print(f"Error loading target scaler from {scaler_path}: {e}. Creating new one.")
             return StandardScaler()
-    
-    # --- Renamed and updated method ---
+
     def _load_transformer_model(self):
         """Load trained Transformer model from disk if it exists"""
-        model_path = os.path.join(self.model_dir, 'paragraph_transformer_model.pth') # Updated filename
-        
-        # --- Instantiate the new Transformer model ---
+        model_path = self.model_dir / 'paragraph_transformer_model.pth'
+
+        # --- Instantiate the Transformer model ---
         # Ensure parameters match the ones used during training
-        # Using defaults here as an example
+        # *** IMPORTANT: Use the *fixed* max_seq_len consistent with training and inference needs ***
         model = ParagraphTransformerModel(
-            input_size=384,       # Matches SentenceTransformer output
-            d_model=384,          # Transformer internal dimension
-            nhead=8,              # Number of attention heads (must divide d_model)
-            num_encoder_layers=3, # Number of Transformer layers
-            dim_feedforward=512, # Feedforward layer dimension
+            input_size=384,
+            d_model=384,
+            nhead=8,
+            num_encoder_layers=3,
+            dim_feedforward=512,
             dropout=0.1,
-            output_size=2,        # Predicting valence and arousal
-            max_seq_len=100       # Max expected sentences per paragraph (adjust if needed)
+            output_size=2,
+            max_seq_len=100 # Use the fixed value (e.g., 100)
         )
 
-        # Load saved parameters if available
         try:
-            if os.path.exists(model_path):
-                # Load state dict, ensuring compatibility with CPU if needed
-                model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
+            if model_path.exists():
+                # Try loading state dict with strict=False initially if mismatches might occur
+                # due to the forward method change (though unlikely to affect state dict keys)
+                try:
+                    model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
+                    print("Transformer model loaded successfully (strict=True).")
+                except RuntimeError as e:
+                     print(f"RuntimeError loading state dict (strict=True): {e}")
+                     print("Attempting to load with strict=False...")
+                     # Load non-strictly if exact match fails (e.g., if buffer names changed slightly)
+                     # Be cautious with this, ensure missing/unexpected keys are okay.
+                     model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')), strict=False)
+                     print("Transformer model loaded potentially with non-strict matching.")
+
                 model.eval() # Set model to evaluation mode
-                print("Transformer model loaded successfully")
             else:
-                print("No pre-trained Transformer model found at", model_path)
-                # Depending on use case, might want to raise an error or return None
+                print(f"No pre-trained Transformer model found at {model_path}. Model is untrained.")
+                # Return the untrained model instance
         except Exception as e:
-            print(f"Error loading Transformer model: {e}")
-            # Consider how to handle errors - return untrained model or raise?
-        
+            print(f"Error loading Transformer model state dict from {model_path}: {e}")
+            # Return the untrained model instance
+
         return model
-    
+
     def split_into_sentences(self, paragraph: str) -> List[str]:
         """Split a paragraph into individual sentences"""
+        # Added basic cleanup: remove extra whitespace before tokenizing
+        paragraph = " ".join(paragraph.split())
         return nltk.sent_tokenize(paragraph)
-    
+
     def embed_sentences(self, sentences: List[str]) -> np.ndarray:
         """Generate embeddings for a list of sentences"""
+        if not sentences:
+            return np.array([]).reshape(0, self.embedding_model.get_sentence_embedding_dimension())
+
         embeddings = self.embedding_model.encode(sentences)
-        
+
         # Apply feature scaling if scaler is trained (has mean_ attribute)
         if hasattr(self.feature_scaler, 'mean_') and self.feature_scaler.mean_ is not None:
-            embeddings = self.feature_scaler.transform(embeddings)
-            
+             # Check dimensions before transforming
+            if embeddings.shape[1] == self.feature_scaler.n_features_in_:
+                 embeddings = self.feature_scaler.transform(embeddings)
+            else:
+                 print(f"Warning: Embedding dimension ({embeddings.shape[1]}) doesn't match scaler expected features ({self.feature_scaler.n_features_in_}). Skipping scaling.")
+
         return embeddings
-    
+
     def process_paragraph(self, paragraph: str) -> Tuple[np.ndarray, List[str], np.ndarray]:
         """
         Process a paragraph for prediction
-        
+
         Returns:
             Tuple containing:
             - Scaled Sentence embeddings (seq_length, embedding_dim) - model input
             - List of sentences
             - Raw sentence embeddings before scaling (for analysis)
         """
-        # Split paragraph into sentences
         sentences = self.split_into_sentences(paragraph)
-        if not sentences: # Handle empty input
-            return np.array([]).reshape(0, self.embedding_model.get_sentence_embedding_dimension()), [], np.array([]).reshape(0, self.embedding_model.get_sentence_embedding_dimension())
+        if not sentences:
+            embedding_dim = self.embedding_model.get_sentence_embedding_dimension()
+            return np.array([]).reshape(0, embedding_dim), [], np.array([]).reshape(0, embedding_dim)
 
-        # Get raw embeddings for analysis
+        # Get raw embeddings
         raw_embeddings = self.embedding_model.encode(sentences)
-        
+
         # Get scaled embeddings for the model input
-        scaled_embeddings = raw_embeddings # Default if scaler not fitted
+        scaled_embeddings = raw_embeddings.copy() # Start with raw
         if hasattr(self.feature_scaler, 'mean_') and self.feature_scaler.mean_ is not None:
-            scaled_embeddings = self.feature_scaler.transform(raw_embeddings)
-        
+            if raw_embeddings.shape[1] == self.feature_scaler.n_features_in_:
+                 scaled_embeddings = self.feature_scaler.transform(raw_embeddings)
+            else:
+                 print(f"Warning: Embedding dimension ({raw_embeddings.shape[1]}) doesn't match scaler expected features ({self.feature_scaler.n_features_in_}). Using raw embeddings for model input.")
+
+
         return scaled_embeddings, sentences, raw_embeddings
-    
-    # --- Updated method to save the correct model type ---
+
     def save_models_and_scalers(self, feature_scaler=None, y_scaler=None, transformer_model=None):
         """Save trained models and scalers to disk"""
+        os.makedirs(self.model_dir, exist_ok=True) # Ensure directory exists
+
         if feature_scaler is not None:
             self.feature_scaler = feature_scaler
-            scaler_path = os.path.join(self.model_dir, 'paragraph_feature_scaler.pkl')
+            scaler_path = self.model_dir / 'paragraph_feature_scaler.pkl'
             try:
                 with open(scaler_path, 'wb') as f:
                     pickle.dump(feature_scaler, f)
@@ -293,7 +382,7 @@ class ParagraphProcessor:
 
         if y_scaler is not None:
             self.y_scaler = y_scaler
-            scaler_path = os.path.join(self.model_dir, 'paragraph_y_scaler.pkl')
+            scaler_path = self.model_dir / 'paragraph_y_scaler.pkl'
             try:
                 with open(scaler_path, 'wb') as f:
                     pickle.dump(y_scaler, f)
@@ -301,59 +390,13 @@ class ParagraphProcessor:
             except Exception as e:
                 print(f"Error saving target scaler: {e}")
 
-        # --- Save Transformer model ---
         if transformer_model is not None:
             self.transformer_model = transformer_model
-            model_path = os.path.join(self.model_dir, 'paragraph_transformer_model.pth') # Updated filename
+            model_path = self.model_dir / 'paragraph_transformer_model.pth'
             try:
                 torch.save(transformer_model.state_dict(), model_path)
                 print(f"Transformer model saved to {model_path}")
             except Exception as e:
                 print(f"Error saving Transformer model: {e}")
-            
-# Example Usage (Optional - demonstrates how to use the processor)
-if __name__ == '__main__':
-    processor = ParagraphProcessor() # Instantiate the processor (loads models/scalers if exist)
 
-    test_paragraph = "This is the first sentence. This is the second sentence, which is a bit longer. Finally, a third sentence."
 
-    # Process the paragraph to get embeddings etc.
-    scaled_embeddings, sentences, raw_embeddings = processor.process_paragraph(test_paragraph)
-
-    print("Sentences:", sentences)
-    print("Scaled Embeddings Shape:", scaled_embeddings.shape) 
-    # Expected: (num_sentences, embedding_dim) e.g., (3, 384)
-
-    # --- Perform Inference ---
-    if processor.transformer_model is not None and scaled_embeddings.size > 0:
-        # Convert numpy array to torch tensor and add batch dimension
-        input_tensor = torch.tensor(scaled_embeddings).unsqueeze(0).float() # Shape: (1, seq_len, input_size)
-        
-        # Ensure model is in evaluation mode
-        processor.transformer_model.eval() 
-        
-        # Disable gradient calculations for inference
-        with torch.no_grad():
-            predictions_scaled = processor.transformer_model(input_tensor) # Shape: (1, output_size)
-        
-        print("Raw Model Output (Scaled):", predictions_scaled.numpy())
-
-        # Inverse transform predictions if y_scaler is fitted
-        if hasattr(processor.y_scaler, 'scale_') and processor.y_scaler.scale_ is not None:
-            final_predictions = processor.y_scaler.inverse_transform(predictions_scaled.numpy())
-            print("Final Predictions (Valence, Arousal):", final_predictions)
-        else:
-            print("Final Predictions (y_scaler not fitted):", predictions_scaled.numpy())
-    
-    elif scaled_embeddings.size == 0:
-        print("Paragraph was empty or resulted in no sentences.")
-    else:
-        print("Transformer model not loaded. Cannot perform inference.")
-
-    # --- Example: Saving (if you had trained components) ---
-    # Assuming you trained 'new_feature_scaler', 'new_y_scaler', 'trained_transformer_model'
-    # processor.save_models_and_scalers(
-    #     feature_scaler=new_feature_scaler, 
-    #     y_scaler=new_y_scaler, 
-    #     transformer_model=trained_transformer_model
-    # )

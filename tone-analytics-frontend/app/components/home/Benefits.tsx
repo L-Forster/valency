@@ -29,7 +29,7 @@ const benefits = [
   {
     name: 'AI-Powered Recommendations',
     description:
-      'Receive automatic improvement suggestions based on your specific conversation patterns. Our LSTM neural network learns from your data to provide customized recommendations.',
+      'Receive automatic improvement suggestions based on your specific conversation patterns. Our transformer neural network learns from your data to provide customized recommendations.',
     icon: SparklesIcon,
     color: 'bg-purple-500',
   },
